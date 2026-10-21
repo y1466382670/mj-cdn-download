@@ -201,7 +201,7 @@ func TestHealthAndFiles(t *testing.T) {
 	defer index.Body.Close()
 	page, _ := io.ReadAll(index.Body)
 	text := string(page)
-	if !strings.Contains(text, "cdn.midjourney.com") || !strings.Contains(text, "https://ttapi.io") {
+	if !strings.Contains(text, "cdn.midjourney.com") || strings.Contains(text, "ttapi.io") {
 		t.Fatalf("page %s", text)
 	}
 	if !strings.Contains(text, `data-set-lang="zh"`) || !strings.Contains(text, `data-lang="zh" hidden`) {

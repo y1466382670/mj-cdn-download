@@ -26,7 +26,7 @@ const indexHTML = `<!DOCTYPE html>
   </p>
   <h1>mj-cdn-download</h1>
   <div class="lang" data-lang="en">
-    <p class="muted">Download images from <code>cdn.midjourney.com</code> into your own storage. <code>proxy</code> is optional.</p>
+    <p class="muted">Midjourney keeps images on <code>cdn.midjourney.com</code>. Send the URL, and this service saves the file on your own storage. <code>proxy</code> is optional.</p>
     <pre>POST /download
 Content-Type: application/json
 
@@ -34,10 +34,9 @@ Content-Type: application/json
   "url": "https://cdn.midjourney.com/xxxx/0_0.png",
   "proxy": "http://user:pass@host:port"
 }</pre>
-    <p>Generate images with <a href="https://ttapi.io" rel="noopener">TTAPI</a>.</p>
   </div>
   <div class="lang" data-lang="zh" hidden>
-    <p class="muted">把 <code>cdn.midjourney.com</code> 的图片下载到自己的存储。<code>proxy</code> 可以不传。</p>
+    <p class="muted">Midjourney 的图在 <code>cdn.midjourney.com</code>。把地址传过来，文件会存到你自己的存储。<code>proxy</code> 可以不传。</p>
     <pre>POST /download
 Content-Type: application/json
 
@@ -45,7 +44,6 @@ Content-Type: application/json
   "url": "https://cdn.midjourney.com/xxxx/0_0.png",
   "proxy": "http://user:pass@host:port"
 }</pre>
-    <p>出图用 <a href="https://ttapi.io" rel="noopener">TTAPI</a>。</p>
   </div>
   <script>
     function applyLang(lang) {

@@ -1,14 +1,20 @@
 # mj-cdn-download
 
+Download Midjourney images from `cdn.midjourney.com` and keep them on your machine, your CDN, or your object storage.
+
 **English** | [中文](README.zh-CN.md)
 
-Download an image from `cdn.midjourney.com` and keep it on your machine, your CDN, or your object storage.
+## Introduction
 
-Midjourney serves generated images from `cdn.midjourney.com`. That host is often unreachable, and the original link is awkward to keep in your own product. Post the image URL here. The service saves the file and returns a URL on your side.
+Midjourney puts the finished image on `cdn.midjourney.com`. Plenty of networks cannot open that host, and the original link is not something you want to store in your own site.
 
-To generate images, use [TTAPI](https://ttapi.io).
+So this is a small service you run yourself. Send it the image URL. It downloads the file and gives you a URL on your side. Leave it on the machine, put your own CDN in front, or upload it to Cloudflare R2, Aliyun OSS, or any other S3-compatible store.
 
-## Run
+`proxy` is optional. Send one and the download goes through it. Leave it out and the service connects directly.
+
+## Deployment
+
+Docker:
 
 ```bash
 git clone https://github.com/y1466382670/mj-cdn-download.git
@@ -16,18 +22,22 @@ cd mj-cdn-download
 docker compose up -d --build
 ```
 
-The Docker image includes Chromium.
+The image includes Chromium.
 
-From source:
+Build from source. Chrome must be installed on the machine.
 
 ```bash
 go build -o mj-cdn-download .
 ./mj-cdn-download
 ```
 
-Windows: `go build -o mj-cdn-download.exe .` Chrome has to be installed.
+On Windows, use `go build -o mj-cdn-download.exe .`.
 
-Listens on `:8080`. Files go to `./data` until you set storage below. Open `http://127.0.0.1:8080` for the request example. Other settings are in [.env.example](.env.example).
+The process listens on `:8080`. Open `http://127.0.0.1:8080` for the request example. The page can switch between English and Chinese.
+
+Requests are not authenticated. Deploy it on a private network, and do not publish the port on the public internet.
+
+Other settings are listed in [.env.example](.env.example).
 
 ## API
 
@@ -40,13 +50,15 @@ Listens on `:8080`. Files go to `./data` until you set storage below. Open `http
 }
 ```
 
-`proxy` can be omitted. Set it and the download uses that proxy. Omit it and the download connects directly.
+`url` is the Midjourney image. Drop `proxy` when you do not need one.
 
 ```bash
 curl -s http://127.0.0.1:8080/download \
   -H 'Content-Type: application/json' \
-  -d '{"url":"https://cdn.midjourney.com/xxxx/0_0.png","proxy":"http://user:pass@host:port"}'
+  -d '{"url":"https://cdn.midjourney.com/xxxx/0_0.png"}'
 ```
+
+A saved file looks like this:
 
 ```json
 {
@@ -61,36 +73,31 @@ curl -s http://127.0.0.1:8080/download \
 }
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `url` | Where to fetch the saved file. Your CDN or bucket URL after you configure storage |
-| `key` | Object path, for example `midjourney/20261021/ab12.png` |
-| `size` | Size in bytes |
-| `source_url` | The Midjourney URL from the request |
+`url` is the link you use afterwards. `key` is the path inside storage. `size` is the file size in bytes. `source_url` is the address you sent.
 
-A failed download is still HTTP 200. Read `code`. `200` means the file was saved.
+When something goes wrong the HTTP status is still 200. Look at `code`. Only `200` means the file was saved.
 
-## Storage
+## Where the file goes
 
-With nothing else set, `url` is `http://<host>/files/` plus `key`. Old files stay in `data` until you delete them.
+With no extra config, files land in `./data`. `url` looks like `http://127.0.0.1:8080/files/midjourney/20261021/ab12.png`. Nothing deletes old files for you.
 
-A CDN and object storage can be set alone or together. Together, the file is uploaded and `url` uses your CDN host.
+You can set a CDN, object storage, or both. With both, the file is uploaded and `url` uses your CDN hostname.
 
-### Your CDN
+### Your own CDN
 
-The file stays on this machine. Point the domain at `/files/` on this service.
+The file stays on this machine. Point your domain at `/files/` on this service, then set the prefix that should show up in the response:
 
 ```bash
 CDN_BASE_URL=https://img.example.com/files
 ```
 
-`url` is `https://img.example.com/files/midjourney/20261021/ab12.png`. No trailing slash. If the domain root already matches the object path, use `https://img.example.com`.
+`url` becomes `https://img.example.com/files/midjourney/20261021/ab12.png`. No slash at the end. If the domain root already lines up with those files, use `https://img.example.com`.
 
 ### Cloudflare R2
 
-Create a bucket and an API token that can read and write objects. The account ID is on the R2 overview. The S3 endpoint is `https://<account_id>.r2.cloudflarestorage.com`.
+Create a bucket, then an API token that can read and write objects. The R2 overview page shows the account ID. The S3 endpoint is `https://<account_id>.r2.cloudflarestorage.com`.
 
-Use that endpoint for upload. Bind a public hostname on the bucket (your domain or `r2.dev`) and put it in `CDN_BASE_URL`.
+That endpoint is only for the upload. Attach a public hostname to the bucket, either your own domain or the `r2.dev` one, and put it in `CDN_BASE_URL`.
 
 ```bash
 STORAGE=s3
@@ -103,15 +110,15 @@ S3_PATH_STYLE=true
 CDN_BASE_URL=https://img.example.com
 ```
 
-Endpoint, bucket, access key, and secret are all required. `S3_PATH_STYLE` can be left unset for `r2.cloudflarestorage.com`.
+Endpoint, bucket, access key, and secret all have to be set. For the R2 hostname you can skip `S3_PATH_STYLE`.
 
-`CDN_BASE_URL` is the bucket root. No trailing slash, and no `/files`. `url` comes back as `https://img.example.com/midjourney/20261021/ab12.png`.
+`CDN_BASE_URL` is the bucket root. Do not add `/files`, and do not add a trailing slash. The `url` you get back looks like `https://img.example.com/midjourney/20261021/ab12.png`.
 
-In Docker Compose, set `STORAGE` to `s3`. `STORAGE=local` ignores `S3_*`.
+In Docker Compose, change `STORAGE` from `local` to `s3`. `local` ignores every `S3_*` value.
 
-### Other S3 storage
+### Aliyun OSS and other S3 stores
 
-Aliyun OSS and other S3-compatible stores use the same `S3_*` variables. Change the endpoint, region, and bucket. Virtual-host URLs need `S3_PATH_STYLE=false`. Set `CDN_BASE_URL` when the response should use your domain.
+Same variables. Swap in that provider's endpoint, region, and bucket. Aliyun's virtual-host addresses want `S3_PATH_STYLE=false`. Add `CDN_BASE_URL` when the link in the response should be your domain.
 
 ## License
 
