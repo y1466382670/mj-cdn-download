@@ -119,7 +119,3 @@ Docker Compose 里把 `STORAGE` 从 `local` 改成 `s3`。还写着 `local` 的�
 ### 阿里云 OSS 和其他 S3
 
 同一组变量，换成对应的 Endpoint、Region 和桶名。阿里云这种虚拟主机风格的地址，把 `S3_PATH_STYLE` 设为 `false`。希望返回的链接走自己的域名，再配上 `CDN_BASE_URL`。
-
-## 许可
-
-[MIT](LICENSE)

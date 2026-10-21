@@ -119,7 +119,3 @@ In Docker Compose, change `STORAGE` from `local` to `s3`. `local` ignores every 
 ### Aliyun OSS and other S3 stores
 
 Same variables. Swap in that provider's endpoint, region, and bucket. Aliyun's virtual-host addresses want `S3_PATH_STYLE=false`. Add `CDN_BASE_URL` when the link in the response should be your domain.
-
-## License
-
-[MIT](LICENSE)
