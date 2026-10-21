@@ -2,17 +2,13 @@
 
 [English](README.md) | **中文**
 
-自建的 Midjourney 图片下载与转存服务。提交 `cdn.midjourney.com` 上的图片地址，服务将文件保存到你自己的存储，并返回可访问的地址。
+把 `cdn.midjourney.com` 上的图片下载下来，存到自己的机器、CDN 或对象存储。
 
-## 背景
+Midjourney 的图放在 `cdn.midjourney.com`。这个地址经常访问不到，也不适合直接留在自己的业务里。把图片地址 POST 给这个服务，它存好文件，再返回你这边的地址。
 
-Midjourney 生成的图片托管在 `cdn.midjourney.com`。业务系统要长期保存这些结果、换成自己的域名，或交给后续流程使用时，需要先把文件从源站取回，再写入自己掌控的位置。
+要出图的话，用 [TTAPI](https://ttapi.io)。
 
-直接访问源站并不稳定。部分网络会被拦截，源站地址也不适合作为业务侧的永久链接。本服务把这一步收成一个可自行部署的 HTTP 接口：调用方提交图片地址，服务完成下载，并把文件放到本机、你的 CDN，或你的对象存储上。
-
-它面向需要自己掌握图片落盘和分发的团队。若要直接调用 Midjourney 出图，可以使用 [TTAPI](https://ttapi.io)。
-
-## 部署
+## 运行
 
 ```bash
 git clone https://github.com/y1466382670/mj-cdn-download.git
@@ -20,20 +16,22 @@ cd mj-cdn-download
 docker compose up -d --build
 ```
 
-本机构建：
+Docker 镜像里带了 Chromium。
+
+本机：
 
 ```bash
 go build -o mj-cdn-download .
 ./mj-cdn-download
 ```
 
-默认监听 `:8080`。未配置外部存储时，文件写入 `./data`，由本服务提供访问。浏览器打开 `http://127.0.0.1:8080` 可查看调用示例，页面默认是英文，可切换为中文。
+Windows 用 `go build -o mj-cdn-download.exe .`，并且要装 Chrome。
 
-其余运行参数见 [.env.example](.env.example)。
+默认端口 `8080`。没配下面的存储时，文件在 `./data`。打开 `http://127.0.0.1:8080` 能看到请求示例。其他参数在 [.env.example](.env.example)。
 
 ## 接口
 
-`POST /download`，请求体为 JSON。
+`POST /download`
 
 ```json
 {
@@ -42,15 +40,13 @@ go build -o mj-cdn-download .
 }
 ```
 
-`url` 为 Midjourney 图片地址。`proxy` 可选：传入则通过该代理访问源站，不传则由服务所在网络直接访问。
+`proxy` 可以不传。传了就走这个代理，不传就直连。
 
 ```bash
 curl -s http://127.0.0.1:8080/download \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://cdn.midjourney.com/xxxx/0_0.png","proxy":"http://user:pass@host:port"}'
 ```
-
-成功时 `code` 为 `200`：
 
 ```json
 {
@@ -67,34 +63,34 @@ curl -s http://127.0.0.1:8080/download \
 
 | 字段 | 含义 |
 | --- | --- |
-| `url` | 保存后的图片地址。配置 CDN 或对象存储后，这里是你自己的地址 |
-| `key` | 存储键，与对象在桶中的路径一致 |
-| `size` | 文件大小，单位为字节 |
-| `source_url` | 请求中的原图地址 |
+| `url` | 保存后的图片地址。配了 CDN 或对象存储之后，这里就是你的地址 |
+| `key` | 对象路径，例如 `midjourney/20261021/ab12.png` |
+| `size` | 字节数 |
+| `source_url` | 请求里的 Midjourney 地址 |
 
-失败时 HTTP 状态仍为 200，以响应体中的 `code` 判断。`code` 为 `200` 才表示成功。
+失败时 HTTP 也是 200，看 `code`。`200` 才是存好了。
 
 ## 存储
 
-默认文件保存在本服务，`url` 为 `http://<主机>/files/` 与 `key` 拼接的结果。
+什么都不配时，`url` 是 `http://<主机>/files/` 加上 `key`。`data` 里的旧文件不会自动删。
 
-自有 CDN 与对象存储可以单独配置，也可以同时配置。同时配置时，文件上传到对象存储，`url` 使用你的 CDN 域名。
+CDN 和对象存储可以分开配，也可以一起配。一起配时，文件上传到桶里，`url` 用你的 CDN 域名。
 
-### 自有 CDN
+### 自己的 CDN
 
-文件仍保存在本服务的 `DATA_DIR`。将你的域名回源到本服务的 `/files/`，再设置返回地址使用的前缀：
+文件还在这台机器上。把域名回源到本服务的 `/files/`。
 
 ```bash
 CDN_BASE_URL=https://img.example.com/files
 ```
 
-此时 `url` 为 `https://img.example.com/files/midjourney/20261021/ab12.png`。前缀不要带末尾斜杠。若域名根目录直接对应存储键，则写成 `https://img.example.com`。
+`url` 会变成 `https://img.example.com/files/midjourney/20261021/ab12.png`。末尾不要斜杠。域名根目录已经对应对象路径时，写成 `https://img.example.com`。
 
 ### Cloudflare R2
 
-在 Cloudflare R2 中创建存储桶，并创建具备对象读写权限的 API 令牌。R2 概览页提供 Account ID，对应的 S3 地址为 `https://<Account ID>.r2.cloudflarestorage.com`。
+建一个桶，再创建一个能读写对象的 API 令牌。Account ID 在 R2 概览页，S3 地址是 `https://<account_id>.r2.cloudflarestorage.com`。
 
-该 S3 地址用于上传，不能作为图片的公开链接。请在存储桶上绑定公开域名（自定义域名或 `r2.dev`），并把该域名写入 `CDN_BASE_URL`。
+这个地址用来上传。桶上再绑一个公开域名（自己的域名或 `r2.dev`），填到 `CDN_BASE_URL`。
 
 ```bash
 STORAGE=s3
@@ -107,15 +103,15 @@ S3_PATH_STYLE=true
 CDN_BASE_URL=https://img.example.com
 ```
 
-`S3_ENDPOINT`、`S3_BUCKET`、`S3_ACCESS_KEY`、`S3_SECRET_KEY` 四项都需要填写。Endpoint 包含 `r2.cloudflarestorage.com` 时，`S3_PATH_STYLE` 可以省略，服务会按 `true` 处理。
+Endpoint、桶名、Access Key、Secret 都要填。Endpoint 是 `r2.cloudflarestorage.com` 时，`S3_PATH_STYLE` 可以不写。
 
-`CDN_BASE_URL` 指向存储桶的根目录，不要带末尾斜杠，也不要附加 `/files`。成功后 `url` 为 `https://img.example.com/midjourney/20261021/ab12.png`。
+`CDN_BASE_URL` 是桶的根域名，末尾不要斜杠，也不要加 `/files`。返回的 `url` 类似 `https://img.example.com/midjourney/20261021/ab12.png`。
 
-使用 Docker Compose 时，将 `STORAGE` 从 `local` 改为 `s3`，并填入上述变量。`STORAGE=local` 时，已填写的 `S3_*` 不会生效。
+Docker Compose 里把 `STORAGE` 改成 `s3`。`STORAGE=local` 时，填了 `S3_*` 也不会上传。
 
-### 其他对象存储
+### 其他 S3 存储
 
-阿里云 OSS 以及其他提供 S3 接口的存储，使用同一组 `S3_*`。将 Endpoint、Region 和桶名换成对应服务商的值。地址为虚拟主机风格时，设置 `S3_PATH_STYLE=false`。需要对外域名时，同样配置 `CDN_BASE_URL`。
+阿里云 OSS 和其他 S3 兼容存储用同一组 `S3_*`，换成自己的 Endpoint、Region 和桶名。虚拟主机风格的地址把 `S3_PATH_STYLE` 设为 `false`。想让返回地址走自己的域名，再配 `CDN_BASE_URL`。
 
 ## 许可
 
