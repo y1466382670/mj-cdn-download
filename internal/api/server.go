@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yanzhiyu/mj-cdn-download/internal/config"
-	"github.com/yanzhiyu/mj-cdn-download/internal/download"
+	"github.com/y1466382670/mj-cdn-download/internal/config"
+	"github.com/y1466382670/mj-cdn-download/internal/download"
 )
 
 // Downloader 下载一张 cdn.midjourney.com 图片。

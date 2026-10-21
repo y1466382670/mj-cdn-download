@@ -15,7 +15,7 @@ It is meant for teams that want to own how these images are stored and delivered
 ## Deploy
 
 ```bash
-git clone https://github.com/yanzhiyu/mj-cdn-download.git
+git clone https://github.com/y1466382670/mj-cdn-download.git
 cd mj-cdn-download
 docker compose up -d --build
 ```

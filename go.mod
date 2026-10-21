@@ -1,4 +1,4 @@
-module github.com/yanzhiyu/mj-cdn-download
+module github.com/y1466382670/mj-cdn-download
 
 go 1.26.0
 

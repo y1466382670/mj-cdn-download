@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/yanzhiyu/mj-cdn-download/internal/download"
+	"github.com/y1466382670/mj-cdn-download/internal/download"
 )
 
 type downloadRequest struct {
