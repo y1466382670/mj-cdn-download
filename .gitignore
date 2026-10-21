@@ -1,0 +1,11 @@
+/data/
+.env
+*.exe
+/mj-cdn-download
+/mj-cdn-download.exe
+*.log
+server.out
+server.err
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,7 @@
+.git
+data
+.env
+*.exe
+*.md
+.idea
+.vscode
